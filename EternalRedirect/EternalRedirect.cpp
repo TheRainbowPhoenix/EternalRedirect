@@ -82,6 +82,7 @@ static const std::vector<BYTE> DRAW_FORMAT_VSTRING_FUNC          = { 0x40, 0x53,
 static const std::vector<BYTE> COPY_FUNC                         = { 0x48, 0x89, 0x5C, 0x24, 0x10, 0x57, 0x48, 0x83, 0xEC, 0x20, 0x48, 0x8B, 0xF9, 0x48, 0xC7, 0xC3 };
 static const std::vector<BYTE> GET_DRAW_FORMAT_STRING_WIDTH_FUNC = { 0x48, 0x89, 0x4C, 0x24, 0x08, 0x48, 0x89, 0x54, 0x24, 0x10, 0x4C, 0x89, 0x44, 0x24, 0x18, 0x4C, 0x89, 0x4C, 0x24, 0x20, 0x53, 0x56 };
 static const std::vector<BYTE> SET_WINDOW_TITLE_FUNC             = { 0x48, 0x89, 0x5C, 0x24, 0x20, 0x55, 0x56, 0x57, 0x41, 0x55, 0x41, 0x57, 0x48, 0x81, 0xEC, 0x40, 0x04, 0x00, 0x00, 0x48, 0x8B, 0x05, 0xA6, 0x92 };
+static const std::vector<BYTE> COPY_ENEMY_NAME_FUNC              = { 0x40, 0x53, 0x55, 0x57, 0x41, 0x56, 0x48, 0x83, 0xEC, 0x28, 0x48, 0xBF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -97,6 +98,9 @@ extern "C"
 
 	int64_t(WINAPI* Real_GetDrawFormatStringWidth)(const char* FormatString, ...) = nullptr;
 	int64_t(WINAPI* Real_SetWindowTitle)(const char* WindowText)                  = nullptr;
+
+	typedef VOID*(WINAPI* CopyEnemyNameFunc)(void* a1, uint8_t* a2, size_t a3);
+	CopyEnemyNameFunc Real_CopyEnemyNameFunc = nullptr;
 }
 
 //
@@ -120,6 +124,30 @@ bool getEntryAndCheck(const std::string& key, nlohmann::json& outEntry)
 //////////////////////////////////////////////////////////////////////////////
 // Detours
 //
+
+VOID* WINAPI Mine_CopyEnemyNameFunc(void* a1, uint8_t* a2, size_t a3)
+{
+	VOID* result = nullptr;
+
+	std::string utf8String = sjis2utf8(reinterpret_cast<const char*>(a2));
+	// Check if this string exists in the translations
+	if (g_translations.contains(utf8String))
+	{
+		nlohmann::json entry;
+
+		if (!getEntryAndCheck(utf8String, entry))
+			return Real_CopyEnemyNameFunc(a1, a2, a3);
+
+		std::string tStr = utf82sjis(entry["text"]);
+		uint8_t* pBuffer = new uint8_t[tStr.size() + 1]();
+		memcpy(pBuffer, tStr.c_str(), tStr.size());
+		result = Real_CopyEnemyNameFunc(a1, pBuffer, tStr.size());
+		delete[] pBuffer;
+	}
+	else
+		result = Real_CopyEnemyNameFunc(a1, a2, a3);
+	return result;
+}
 
 int64_t WINAPI Mine_SetWindowTitle(const char* WindowText)
 {
@@ -294,6 +322,7 @@ LONG AttachDetours(VOID)
 	ATTACH(CopyFunc);
 	ATTACH(GetDrawFormatStringWidth);
 	ATTACH(SetWindowTitle);
+	ATTACH(CopyEnemyNameFunc);
 
 	return DetourTransactionCommit();
 }
@@ -307,6 +336,7 @@ LONG DetachDetours(VOID)
 	DETACH(CopyFunc);
 	DETACH(GetDrawFormatStringWidth);
 	DETACH(SetWindowTitle);
+	DETACH(CopyEnemyNameFunc);
 
 	return DetourTransactionCommit();
 }
@@ -392,6 +422,7 @@ BOOL ProcessAttach(HMODULE hDll)
 	SetupHook(Real_CopyFunc, COPY_FUNC, "CopyFunc");
 	SetupHook(Real_GetDrawFormatStringWidth, GET_DRAW_FORMAT_STRING_WIDTH_FUNC, "GetDrawFormatStringWidth");
 	SetupHook(Real_SetWindowTitle, SET_WINDOW_TITLE_FUNC, "SetWindowTitle");
+	SetupHook(Real_CopyEnemyNameFunc, COPY_ENEMY_NAME_FUNC, "CopyEnemyNameFunc");
 
 	LONG error = AttachDetours();
 
