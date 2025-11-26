@@ -165,7 +165,7 @@ int64_t WINAPI Mine_GetDrawFormatStringWidth(const char* FormatString, ...)
 
 		// Clear the largest string since resize after using it
 		g_largestCopiedStrSinceResize.clear();
-
+		tStr   = utf82sjis(tStr);
 		result = Real_GetDrawFormatStringWidth(tStr.c_str());
 	}
 	else
@@ -189,7 +189,7 @@ VOID* WINAPI Mine_CopyFunc(void* a1, uint8_t* a2, int64_t a3)
 		if (!getEntryAndCheck(utf8String, entry))
 			return Real_CopyFunc(a1, a2, a3);
 
-		const std::string tStr             = entry["text"];
+		std::string tStr                   = entry["text"];
 		std::vector<uint32_t> pixelLengths = entry["pixel_lengths"].get<std::vector<uint32_t>>();
 		std::vector<std::string> lines     = splitString(tStr, '\n');
 
@@ -199,6 +199,8 @@ VOID* WINAPI Mine_CopyFunc(void* a1, uint8_t* a2, int64_t a3)
 			if (i < pixelLengths.size() && g_largestCopiedStrSinceResize < pixelLengths[i])
 				g_largestCopiedStrSinceResize = TranslationEntry(lines[i], pixelLengths[i]);
 		}
+
+		tStr = utf82sjis(tStr);
 
 		uint8_t* pBuffer = new uint8_t[tStr.size() + 1]();
 		memcpy(pBuffer, tStr.c_str(), tStr.size());
@@ -233,7 +235,7 @@ int WINAPI Mine_DrawFormatVStringToHandle(int x, int y, unsigned int Color, int 
 		if (!getEntryAndCheck(utf8String, entry))
 			return Real_DrawFormatVStringToHandle(x, y, Color, FontHandle, buffer);
 
-		const std::string tStr = entry["text"];
+		const std::string tStr = utf82sjis(entry["text"]);
 
 		result = Real_DrawFormatVStringToHandle(x, y, Color, FontHandle, tStr.c_str());
 	}

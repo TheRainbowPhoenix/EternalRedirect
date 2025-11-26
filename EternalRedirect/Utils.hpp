@@ -49,6 +49,25 @@ std::string sjis2utf8(const char* sjis)
 	return utf8;
 }
 
+std::string utf82sjis(const std::string& utf8)
+{
+	int len = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, NULL, 0);
+	std::wstring wstr;
+	wstr.resize(len);
+	MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wstr[0], len);
+
+	len = WideCharToMultiByte(932, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+	std::string sjis;
+	sjis.resize(len);
+	WideCharToMultiByte(932, 0, wstr.c_str(), -1, &sjis[0], len, NULL, NULL);
+
+	// Remove the null terminator added by WideCharToMultiByte
+	if (!sjis.empty() && sjis.back() == '\0')
+		sjis.pop_back();
+
+	return sjis;
+}
+
 std::string replaceAll(const std::string& str, const std::string& from, const std::string& to)
 {
 	std::string result = str;
