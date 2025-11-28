@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EternalRedirect", "EternalR
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StringExtractor", "StringExtractor\StringExtractor.vcxproj", "{CB036066-D717-4091-A159-9863138CAEC7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "setdll", "setdll\setdll.vcxproj", "{7D90A8F9-D198-4137-8E23-17ED344539FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{CB036066-D717-4091-A159-9863138CAEC7}.Debug|x64.Build.0 = Debug|x64
 		{CB036066-D717-4091-A159-9863138CAEC7}.Release|x64.ActiveCfg = Release|x64
 		{CB036066-D717-4091-A159-9863138CAEC7}.Release|x64.Build.0 = Release|x64
+		{7D90A8F9-D198-4137-8E23-17ED344539FB}.Debug|x64.ActiveCfg = Debug|x64
+		{7D90A8F9-D198-4137-8E23-17ED344539FB}.Debug|x64.Build.0 = Debug|x64
+		{7D90A8F9-D198-4137-8E23-17ED344539FB}.Release|x64.ActiveCfg = Release|x64
+		{7D90A8F9-D198-4137-8E23-17ED344539FB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
