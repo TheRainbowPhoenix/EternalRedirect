@@ -1,0 +1,76 @@
+name: Build EternalRedirect
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build ${{ matrix.configuration }} ${{ matrix.platform }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release] # Add 'Debug' if needed
+        platform: [x64]          # Add 'Win32' if needed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17'          # Visual Studio 2022 (v143 toolset)
+          msbuild-architecture: x64
+
+      - name: Build Solution
+        shell: cmd
+        run: |
+          msbuild "EternalRedirect.sln" ^
+            /m ^
+            /p:Configuration=${{ matrix.configuration }} ^
+            /p:Platform=${{ matrix.platform }} ^
+            /p:WindowsTargetPlatformVersion=10.0 ^
+            /p:PreferredToolArchitecture=x64 ^
+            /verbosity:minimal
+
+      # Copy artifacts to a specific staging folder to make uploading cleaner
+      # Because VS outputs x64 to /x64/Release and Win32 to /Release, 
+      # we normalize this here for the upload step.
+      - name: Stage Artifacts
+        shell: pwsh
+        run: |
+          $conf = "${{ matrix.configuration }}"
+          $plat = "${{ matrix.platform }}"
+          
+          # Standard VS output paths
+          if ($plat -eq "x64") {
+            $sourceDir = "x64\$conf"
+          } else {
+            $sourceDir = "$conf"
+          }
+          
+          $stageDir = "stage"
+          New-Item -ItemType Directory -Force -Path $stageDir
+          
+          # Copy the main outputs based on project names
+          Copy-Item "$sourceDir\*.dll" -Destination $stageDir -ErrorAction SilentlyContinue
+          Copy-Item "$sourceDir\*.exe" -Destination $stageDir -ErrorAction SilentlyContinue
+          Copy-Item "$sourceDir\*.pdb" -Destination $stageDir -ErrorAction SilentlyContinue
+          
+          Write-Host "Staged contents:"
+          Get-ChildItem $stageDir
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: EternalRedirect-${{ matrix.platform }}-${{ matrix.configuration }}
+          path: stage/*
+          if-no-files-found: error
